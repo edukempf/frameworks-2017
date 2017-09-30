@@ -3,81 +3,35 @@ use Zend\Expressive\AppFactory;
 
 $loader = require 'vendor/autoload.php';
 $loader->add('RestBeer', __DIR__.'/src');
-
-$app = AppFactory::create();
-
-$app->get('/', function ($request, $response, $next) {
-    $response->getBody()->write('Hello, world!');
-    return $response;
-});
-
 $beers = [
     'brands' => ['Heineken', 'Guinness', 'Skol', 'Colorado'],
     'styles' => ['Pilsen' , 'Stout']
 ];
-
-$app->get('/brands', function ($request, $response, $next) use ($beers) {
-    // $response->getBody()->write(serialize($beers['brands']));
-    $response->getBody()->write(implode(',', $beers['brands']));
-    // return $response;
-    return $next($request, $response);
-});
-
-$app->get('/styles', function ($request, $response, $next) use ($beers) {
-    $response->getBody()->write(implode(',', $beers['styles']));
-    return $response;
-});
-
-$app->get('/beer/{id}', function ($request, $response, $next) use ($beers) {
-    $id = $request->getAttribute('id');
-    if (!isset($beers['brands'][$id])) {
-        return $response->withStatus(404);
-    }
-
-    $response->getBody()->write($beers['brands'][$id]);
-
-    return $response;
-});
-
 $db = new PDO('sqlite:beers.db');
-$app->post('/beer', function ($request, $response, $next) use ($db) {
-    $db->exec(
-        "create table if not exists 
-beer (id INTEGER PRIMARY KEY AUTOINCREMENT, name text not null, style text not null)"
-    );
 
-    $data = $request->getParsedBody();
-    //@TODO: clean form data before insert into the database ;)
-    $stmt = $db->prepare('insert into beer (name, style) values (:name, :style)');
-    $stmt->bindParam(':name',$data['name']);
-    $stmt->bindParam(':style', $data['style']);
-    $stmt->execute();
-    $data['id'] = $db->lastInsertId();
-    if ($data['id'] == 0) {
-        return $response->withStatus(500, "Erro salvando cerveja");
-    }
-    $response->getBody()->write($data['id']);
+$app = AppFactory::create();
 
-    return $response->withStatus(201);
-});
+$app->get('/', new \RestBeer\Home());
 
-$app->put('/beer/{id}', function ($request, $response, $next) use ($db) {
-    $id = $request->getAttribute('id');
+$app->get('/brands', new RestBeer\Beer\ListBrands($beers));
 
-    parse_str(file_get_contents("php://input"),$data);
-    $stmt = $db->prepare('update beer set name=:name, style=:style where id=:id');
-    $stmt->bindParam(':name',$data['name']);
-    $stmt->bindParam(':style', $data['style']);
-    $stmt->bindParam(':id', $id);
-    $stmt->execute();
-    return $response->withStatus(204);
-});
+$app->get('/styles', new RestBeer\Beer\ListStyle($beers));
+
+$app->get('/beer/{id}', new \RestBeer\Beer\GetBeer($beers));
+
+$app->get('/beers', new \RestBeer\Beer\ListBeer($db));
+
+$app->post('/beer', new \RestBeer\Beer\InsertBeer($db));
+
+$app->post('/login', new \RestBeer\Login());
+
+$app->put('/beer/{id}', new \RestBeer\Beer\UpdateBeer($db));
+
+$app->delete('/beer/{id}', new \RestBeer\Beer\DeleteBeer($db));
 
 $app->pipe(new RestBeer\Auth());
 $app->pipeRoutingMiddleware();
-// $app->pipe(new Coderockr\Middleware\FileUpload());
 $app->pipeDispatchMiddleware();
 $app->pipe(new RestBeer\Format\Json());
 $app->pipe(new RestBeer\Format\Html());
-// $app->pipe(new RestBeer\Format\Xml());
 $app->run();

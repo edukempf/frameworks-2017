@@ -18,6 +18,10 @@ class Html implements MiddlewareInterface
         if (isset($header[0])) {
             $accept = $header[0];
         }
+        //var_dump($accept);
+        if($accept == "*/*"){
+            $accept = 'text/html';
+        }
         if ($accept != 'text/html' ) {
             return $out($request, $response);
         }

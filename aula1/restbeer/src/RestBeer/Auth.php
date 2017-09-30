@@ -9,8 +9,17 @@ class Auth implements MiddlewareInterface
 {
     private $validToken = 'cerveja';
 
+    private $whiteList = array('login');
+
     public function __invoke(Request $request, Response $response, callable $out = null)
     {
+        $valores = explode('/',$request->getUri());
+        $url = $valores[count($valores)-1];
+
+        if(in_array($url,$this->whiteList)){
+        return $out($request, $response);
+    }
+
         if(! $request->hasHeader('authorization')){
             return $response->withStatus(401);
         }
