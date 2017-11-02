@@ -61,6 +61,19 @@ return [
                     ],
                 ],
             ],
+            'login' => [
+                'type'    => Segment::class,
+                'options' => [
+                    'route'    => '/login[/][:action]',
+                    'constraints' => [
+                        'action' => '[a-zA-Z][a-zA-Z0-9_-]*',
+                    ],
+                    'defaults' => [
+                        'controller' => Controller\LoginController::class,
+                        'action'     => 'index',
+                    ],
+                ],
+            ],
         ],
     ],
     'controllers' => [
@@ -68,8 +81,16 @@ return [
             Controller\IndexController::class => InvokableFactory::class,
             Controller\BeerController::class => function(\Interop\Container\ContainerInterface $container, $requestedName) {
                 $tableGateway = $container->get('Application\Model\BeerTableGateway');
-                $cache = $container->get('Application\Service\Cache');
-                $controller = new Controller\BeerController($tableGateway, $cache);
+                $sessionContainer = $container->get('ContainerNamespace');
+                //$cache = $container->get('Application\Service\Cache');
+                $controller = new Controller\BeerController($tableGateway, $sessionContainer/*, $cache*/);
+
+                return $controller;
+            },
+            Controller\LoginController::class => function(\Interop\Container\ContainerInterface $container, $requestedName) {
+                $tableGateway = $container->get('Application\Model\UserTableGateway');
+                $sessionContainer = $container->get('ContainerNamespace');
+                $controller = new Controller\LoginController($tableGateway, $sessionContainer);
 
                 return $controller;
             },
@@ -90,5 +111,8 @@ return [
         'template_path_stack' => [
             __DIR__ . '/../view',
         ],
+    ],
+    'session_containers' => [
+        'ContainerNamespace'
     ],
 ];

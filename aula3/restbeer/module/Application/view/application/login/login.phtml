@@ -1,0 +1,12 @@
+<?php echo $this->form()->openTag($form); ?>
+<div class="form_element">
+    <?php echo $this->formRow($form->get('email')); ?>
+</div>
+
+<div class="form_element">
+    <?php echo $this->formRow($form->get('password')); ?>
+</div>
+
+<?php echo $this->formElement($form->get('send')) ?>
+
+<?php echo $this->form()->closeTag() ?>
